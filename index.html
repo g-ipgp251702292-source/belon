@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🎪 Sarkas Kata Adjektif Pancaindera: Misi Keselamatan 🦺</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- GSAP CDN untuk Animasi & Drag -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/Draggable.min.js"></script>
+    
+    <!-- Canvas Confetti CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <!-- Google Fonts: Fredoka -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            font-family: 'Fredoka', cursive, sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Latar belakang Sarkas & Keselamatan */
+        .circus-bg {
+            background: radial-gradient(circle at center, #FFF3E0 0%, #FFE0B2 60%, #FFCC80 100%);
+            background-image: 
+                repeating-linear-gradient(45deg, rgba(239, 68, 68, 0.08) 0, rgba(239, 68, 68, 0.08) 20px, transparent 0, transparent 40px),
+                repeating-linear-gradient(-45deg, rgba(245, 158, 11, 0.08) 0, rgba(245, 158, 11, 0.08) 20px, transparent 0, transparent 40px);
+        }
+
+        /* Tali Belon */
+        .balloon-string {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            width: 2px;
+            height: 25px;
+            background: #94A3B8;
+            transform: translateX(-50%);
+        }
+
+        /* Efek Timbul & Bayang Custom */
+        .card-shadow {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        .basket-glow {
+            filter: drop-shadow(0px 8px 12px rgba(0,0,0,0.15));
+            transition: all 0.2s ease;
+        }
+
+        /* Preloade Pulse */
+        @keyframes pulse-light {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .pulse-btn {
+            animation: pulse-light 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="circus-bg h-screen w-screen overflow-hidden flex flex-col justify-between text-slate-800">
+
+    <!-- BAR MAKLUMAT BAHAGIAN ATAS -->
+    <header class="bg-gradient-to-r from-red-600 via-amber-500 to-red-600 text-white p-3 shadow-lg flex justify-between items-center z-20 border-b-4 border-yellow-300">
+        <div class="flex items-center space-x-2">
+            <span class="text-2xl md:text-3xl">🎪</span>
+            <div class="hidden sm:block">
+                <h1 class="font-bold text-lg md:text-xl leading-none text-yellow-300">MISI KESELAMATAN</h1>
+                <p class="text-xs text-amber-100">Kata Adjektif Pancaindera</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2 md:space-x-6 text-sm md:text-base font-bold">
+            <div class="bg-red-800/60 px-3 py-1 rounded-full border border-yellow-300/40 flex items-center space-x-1">
+                <span>⭐ SKOR:</span>
+                <span id="score-text" class="text-yellow-300 text-lg">0</span>
+            </div>
+
+            <div class="bg-red-800/60 px-3 py-1 rounded-full border border-yellow-300/40 flex items-center space-x-1">
+                <span>🔥 KOMBO:</span>
+                <span id="combo-text" class="text-orange-400 text-lg">0</span>
+            </div>
+
+            <div class="bg-red-800/60 px-3 py-1 rounded-full border border-yellow-300/40 hidden md:flex items-center space-x-1">
+                <span>⚡ KELAJUAN:</span>
+                <span id="speed-text" class="text-emerald-300">NORMAL</span>
+            </div>
+
+            <div id="lives-container" class="flex space-x-1 text-xl">
+                <span>❤️</span><span>❤️</span><span>❤️</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- KAWASAN PERMAINAN UTAMA -->
+    <main id="game-arena" class="relative flex-1 w-full max-w-6xl mx-auto overflow-hidden">
+        <!-- Teks Arahan Pengguna -->
+        <div id="drag-hint" class="absolute top-3 left-1/2 -translate-x-1/2 bg-yellow-400/90 text-red-900 font-bold px-4 py-1.5 rounded-full shadow border-2 border-white text-xs md:text-sm z-10 text-center pointer-events-none">
+            🎈 Tarik belon ke bakul pancaindera yang betul!
+        </div>
+
+        <!-- Banner Kombo Pop-up -->
+        <div id="combo-banner" class="absolute top-16 left-1/2 -translate-x-1/2 bg-gradient-to-r from-orange-500 to-red-600 text-white font-extrabold px-6 py-2 rounded-2xl shadow-2xl border-4 border-yellow-300 text-2xl md:text-4xl z-30 pointer-events-none opacity-0 scale-50 transform">
+            🔥 KOMBO 5! MARKAH DIGANDAKAN! 🔥
+        </div>
+
+        <!-- Kawasan Belon Jatuh -->
+        <div id="balloon-container" class="absolute inset-0 z-10 pointer-events-none"></div>
+    </main>
+
+    <!-- BAHAGIAN BAWAH: 5 BAKUL PANCAINDERA -->
+    <footer class="w-full bg-amber-900/10 backdrop-blur-sm p-2 md:p-4 border-t-4 border-amber-600/30 z-20">
+        <div class="max-w-6xl mx-auto grid grid-cols-5 gap-2 md:gap-4">
+            
+            <!-- Bakul 1: Penglihatan -->
+            <div data-category="PENGLIHATAN" class="basket basket-glow bg-gradient-to-b from-blue-400 to-blue-600 border-4 border-blue-200 rounded-2xl p-1 md:p-3 text-center text-white shadow-lg flex flex-col items-center justify-between min-h-[90px] md:min-h-[120px]">
+                <div class="text-2xl md:text-4xl my-1">👁️</div>
+                <div class="font-bold text-xs md:text-base tracking-wide uppercase">Penglihatan</div>
+            </div>
+
+            <!-- Bakul 2: Pendengaran -->
+            <div data-category="PENDENGARAN" class="basket basket-glow bg-gradient-to-b from-purple-400 to-purple-600 border-4 border-purple-200 rounded-2xl p-1 md:p-3 text-center text-white shadow-lg flex flex-col items-center justify-between min-h-[90px] md:min-h-[120px]">
+                <div class="text-2xl md:text-4xl my-1">👂</div>
+                <div class="font-bold text-xs md:text-base tracking-wide uppercase">Pendengaran</div>
+            </div>
+
+            <!-- Bakul 3: Bau -->
+            <div data-category="BAU" class="basket basket-glow bg-gradient-to-b from-emerald-400 to-emerald-600 border-4 border-emerald-200 rounded-2xl p-1 md:p-3 text-center text-white shadow-lg flex flex-col items-center justify-between min-h-[90px] md:min-h-[120px]">
+                <div class="text-2xl md:text-4xl my-1">👃</div>
+                <div class="font-bold text-xs md:text-base tracking-wide uppercase">Bau</div>
+            </div>
+
+            <!-- Bakul 4: Rasa -->
+            <div data-category="RASA" class="basket basket-glow bg-gradient-to-b from-amber-400 to-amber-600 border-4 border-amber-200 rounded-2xl p-1 md:p-3 text-center text-white shadow-lg flex flex-col items-center justify-between min-h-[90px] md:min-h-[120px]">
+                <div class="text-2xl md:text-4xl my-1">👅</div>
+                <div class="font-bold text-xs md:text-base tracking-wide uppercase">Rasa</div>
+            </div>
+
+            <!-- Bakul 5: Sentuhan -->
+            <div data-category="SENTUHAN" class="basket basket-glow bg-gradient-to-b from-rose-400 to-rose-600 border-4 border-rose-200 rounded-2xl p-1 md:p-3 text-center text-white shadow-lg flex flex-col items-center justify-between min-h-[90px] md:min-h-[120px]">
+                <div class="text-2xl md:text-4xl my-1">✋</div>
+                <div class="font-bold text-xs md:text-base tracking-wide uppercase">Sentuhan</div>
+            </div>
+
+        </div>
+    </footer>
+
+    <!-- SKRIN MENU UTAMA MODAL -->
+    <div id="modal-start" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+        <div class="bg-gradient-to-b from-red-500 via-amber-500 to-red-600 border-8 border-yellow-300 rounded-3xl p-6 md:p-8 max-w-lg w-full text-center text-white shadow-2xl relative overflow-hidden">
+            <div class="text-6xl my-2 animate-bounce">🎪</div>
+            <h2 class="text-2xl md:text-4xl font-extrabold text-yellow-300 drop-shadow-md leading-tight mb-2">
+                SARKAS KATA ADJEKTIF PANCAINDERA
+            </h2>
+            <div class="bg-yellow-300 text-red-900 font-bold px-4 py-1 rounded-full inline-block text-sm md:text-base mb-4 shadow">
+                🦺 Misi Keselamatan Bermula!
+            </div>
+            
+            <p class="text-sm md:text-base text-amber-50 mb-6 bg-red-900/40 p-4 rounded-xl border border-yellow-300/30">
+                Tarik setiap belon ke bakul pancaindera yang betul. Kenal pasti kata adjektif sambil belajar tentang keselamatan!
+            </p>
+
+            <div class="flex flex-col gap-3">
+                <button id="btn-start" class="pulse-btn bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-extrabold text-xl py-4 rounded-2xl border-b-4 border-green-800 shadow-xl transition transform active:scale-95">
+                    ▶️ MULA PERMAINAN
+                </button>
+                <button id="btn-how" class="bg-yellow-400 hover:bg-yellow-500 text-red-950 font-bold text-lg py-3 rounded-2xl border-b-4 border-yellow-600 shadow-md transition">
+                    📖 CARA BERMAIN
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CARA BERMAIN -->
+    <div id="modal-how" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white border-4 border-amber-500 rounded-3xl p-6 max-w-md w-full text-slate-800 shadow-2xl">
+            <h3 class="text-2xl font-bold text-amber-600 mb-4 flex items-center gap-2">
+                📖 Cara Bermain
+            </h3>
+            <ol class="list-decimal list-inside space-y-3 text-sm md:text-base text-slate-700 font-semibold">
+                <li>Belon perkataan akan jatuh dari bahagian atas skrin.</li>
+                <li>Tarik (drag) belon tersebut menggunakan tetikus atau jari anda.</li>
+                <li>Masukkan belon ke dalam 1 daripada 5 bakul pancaindera yang sepadan.</li>
+                <li>Kekalkan **Kombo** untuk menggandakan skor anda!</li>
+                <li>Elakkan belon jatuh ke lantai supaya nyawa tidak berkurang.</li>
+            </ol>
+            <button id="btn-close-how" class="mt-6 w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl border-b-4 border-red-700">
+                FAHAM! KEMBALI
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL KAD SITUASI KESELAMATAN -->
+    <div id="modal-situation" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-40 hidden">
+        <div class="bg-gradient-to-b from-amber-50 to-orange-100 border-4 border-amber-500 rounded-3xl p-6 max-w-md w-full text-center shadow-2xl relative animate-fade-in">
+            <div id="sit-icon" class="text-6xl mb-2">🖼️</div>
+            <div id="sit-badge" class="inline-block bg-amber-500 text-white font-bold text-xs px-3 py-1 rounded-full uppercase mb-2">
+                KATEGORI
+            </div>
+            <h3 id="sit-word" class="text-3xl font-extrabold text-red-600 mb-2">PERKATAAN</h3>
+            
+            <div class="bg-white/80 p-4 rounded-2xl border border-amber-200 mb-4 text-left space-y-2 shadow-inner">
+                <p id="sit-sentence" class="text-slate-800 font-semibold text-sm md:text-base">
+                    "Contoh ayat situasi keselamatan."
+                </p>
+                <div class="bg-amber-100 p-2 rounded-xl text-xs md:text-sm text-amber-900 font-bold border-l-4 border-amber-500 flex items-start gap-2">
+                    <span>⚠️</span>
+                    <span id="sit-tip">Tip keselamatan di sini.</span>
+                </div>
+            </div>
+
+            <button id="btn-continue" class="w-full bg-green-500 hover:bg-green-600 text-white font-extrabold text-lg py-3 rounded-xl border-b-4 border-green-700 shadow-lg">
+                ➡️ TERUSKAN
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL SKRIN TAMAT PERMAINAN -->
+    <div id="modal-end" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-gradient-to-b from-red-600 via-amber-500 to-red-600 border-8 border-yellow-300 rounded-3xl p-6 md:p-8 max-w-lg w-full text-center text-white shadow-2xl">
+            <div class="text-5xl mb-2">🏆🎪</div>
+            <h2 class="text-2xl md:text-3xl font-extrabold text-yellow-300 mb-1">
+                JAGUH KATA ADJEKTIF PANCAINDERA
+            </h2>
+            <p id="end-status-title" class="text-lg font-bold text-white mb-4">TAHNIAH! Anda telah menyelesaikan Misi Keselamatan!</p>
+
+            <!-- Laporan Prestasi -->
+            <div class="bg-red-950/50 p-4 rounded-2xl border border-yellow-300/30 mb-4 grid grid-cols-2 gap-3 text-sm md:text-base font-bold">
+                <div class="bg-white/10 p-2 rounded-xl">
+                    <div class="text-xs text-amber-200">JUMLAH SKOR</div>
+                    <div id="end-score" class="text-2xl text-yellow-300">0</div>
+                </div>
+                <div class="bg-white/10 p-2 rounded-xl">
+                    <div class="text-xs text-amber-200">JAWAPAN BETUL</div>
+                    <div id="end-correct" class="text-2xl text-emerald-400">0 / 20</div>
+                </div>
+                <div class="bg-white/10 p-2 rounded-xl">
+                    <div class="text-xs text-amber-200">KOMBO TERTINGGI</div>
+                    <div id="end-combo" class="text-2xl text-orange-400">0</div>
+                </div>
+                <div class="bg-white/10 p-2 rounded-xl">
+                    <div class="text-xs text-amber-200">NYAWA BERBAKI</div>
+                    <div id="end-lives" class="text-2xl text-rose-400">0</div>
+                </div>
+            </div>
+
+            <p id="end-feedback-msg" class="text-sm md:text-base font-semibold bg-yellow-300 text-red-950 p-3 rounded-xl mb-6">
+                Mesej penilaian prestasi akan dipaparkan di sini.
+            </p>
+
+            <div class="flex gap-3">
+                <button id="btn-restart" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-extrabold py-3 rounded-xl border-b-4 border-green-700 shadow-lg">
+                    🔄 MAIN SEMULA
+                </button>
+                <button id="btn-home" class="flex-1 bg-yellow-400 hover:bg-yellow-500 text-red-950 font-bold py-3 rounded-xl border-b-4 border-yellow-600 shadow-md">
+                    🏠 MENU UTAMA
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SKRIP UTAMA PERMAINAN -->
+    <script>
+        // --- 1. BANK DATA 20 KATA ADJEKTIF PANCAINDERA & KESELAMATAN ---
+        const wordBank = [
+            // PENGLIHATAN
+            {
+                word: "TERANG", category: "PENGLIHATAN", icon: "💡",
+                sentence: "Jalan yang terang membantu kita melihat keadaan sekeliling dengan lebih jelas pada waktu malam.",
+                tip: "Gunakan lampu atau pemantul cahaya apabila berjalan dalam gelap."
+            },
+            {
+                word: "GELAP", category: "PENGLIHATAN", icon: "🌙",
+                sentence: "Kawasan laluan yang gelap boleh membahayakan keselamatan diri daripada potensi ancaman.",
+                tip: "Elakkan melalui lorong yang gelap seorang diri."
+            },
+            {
+                word: "JELAS", category: "PENGLIHATAN", icon: "🛑",
+                sentence: "Papan tanda amaran keselamatan yang jelas memudahkan pengguna jalan raya mematuhinya.",
+                tip: "Sentiasa perhatikan papan tanda amaran di sekeliling anda."
+            },
+            {
+                word: "KABUR", category: "PENGLIHATAN", icon: "🌫️",
+                sentence: "Penglihatan yang kabur semasa cermin kenderaan berwap boleh menyebabkan kemalangan.",
+                tip: "Pastikan pemandu membersihkan cermin kenderaan sebelum memandu."
+            },
+
+            // PENDENGARAN
+            {
+                word: "NYARING", category: "PENDENGARAN", icon: "🚑",
+                sentence: "Bunyi siren ambulans yang nyaring memberi amaran kepada pengguna jalan raya supaya memberi laluan.",
+                tip: "Segera ketepi apabila mendengar siren keselamatan."
+            },
+            {
+                word: "BISING", category: "PENDENGARAN", icon: "🚧",
+                sentence: "Bunyi bising di tapak pembinaan boleh mengganggu tumpuan dan menjejaskan pendengaran.",
+                tip: "Gunakan pelindung telinga di kawasan pembinaan berisiko."
+            },
+            {
+                word: "KUAT", category: "PENDENGARAN", icon: "🔔",
+                sentence: "Bunyi loceng kecemasan yang kuat menandakan semua murid perlu berkumpul di padang sekolah.",
+                tip: "Sentiasa bertenang dan beratur semasa latihan kebakaran."
+            },
+            {
+                word: "SENYAP", category: "PENDENGARAN", icon: "🤫",
+                sentence: "Keadaan yang terlalu senyap di bilik makmal memerlukan kita sentiasa waspada dengan arahan guru.",
+                tip: "Patuhi peraturan makmal dan jangan berbuat bising."
+            },
+
+            // BAU
+            {
+                word: "HARUM", category: "BAU", icon: "🧼",
+                sentence: "Cecair pembersih tangan yang harum memastikan kuman dan bakteria berbahaya hilang.",
+                tip: "Cuci tangan dengan sabun secara teratur untuk menjaga kebersihan."
+            },
+            {
+                word: "WANGI", category: "BAU", icon: "🌸",
+                sentence: "Semburan nyamuk yang berbau wangi tetap mengandungi bahan kimia berbahaya.",
+                tip: "Jangan sembur racun serangga berdekatan dengan makanan."
+            },
+            {
+                word: "BUSUK", category: "BAU", icon: "🤢",
+                sentence: "Makanan yang berbau busuk menandakan ia sudah rosak dan tidak selamat untuk dimakan.",
+                tip: "Periksa bau dan rupa makanan sebelum anda memakannya."
+            },
+            {
+                word: "TENGIK", category: "BAU", icon: "🛢️",
+                sentence: "Minyak masak yang berbau tengik tidak sihat untuk digunakan lagi dalam masakan.",
+                tip: "Elakkan makan makanan yang digoreng menggunakan minyak berulang kali."
+            },
+
+            // RASA
+            {
+                word: "MANIS", category: "RASA", icon: "🍬",
+                sentence: "Makanan yang terlalu manis boleh merosakkan gigi dan menjejaskan kesihatan badan.",
+                tip: "Kurangkan pengambilan gula dalam pemakanan harian."
+            },
+            {
+                word: "MASIN", category: "RASA", icon: "🧂",
+                sentence: "Makanan yang terlalu masin berisiko tinggi menyebabkan penyakit tekanan darah tinggi.",
+                tip: "Amalkan diet seimbang demi keselamatan kesihatan diri."
+            },
+            {
+                word: "MASAM", category: "RASA", icon: "🥛",
+                sentence: "Susu basi yang terasa masam perlu dibuang segera kerana mengandungi bakteria.",
+                tip: "Sentiasa periksa tarikh luput produk tenusu."
+            },
+            {
+                word: "PAHIT", category: "RASA", icon: "💊",
+                sentence: "Ubat yang terasa pahit mestilah diambil mengikut preskripsi dan sukatan doktor.",
+                tip: "Simpan ubat-ubatan di tempat yang selamat daripada kanak-kanak."
+            },
+
+            // SENTUHAN
+            {
+                word: "PANAS", category: "SENTUHAN", icon: "☕",
+                sentence: "Cerek yang masih panas boleh menyebab kecederaan dan melecur jika tersentuh.",
+                tip: "Gunakan alas tangan tebal apabila memegang peralatan dapur yang panas."
+            },
+            {
+                word: "KASAR", category: "SENTUHAN", icon: "🧗",
+                sentence: "Permukaan pemegang tangga yang kasar membantu memberi cengkaman supaya tidak tergelincir.",
+                tip: "Pegang pemegang susur tangga semasa naik atau turun."
+            },
+            {
+                word: "LICIN", category: "SENTUHAN", icon: "⚠️",
+                sentence: "Lantai yang licin di kawasan tandas sekolah boleh menyebabkan murid terjatuh.",
+                tip: "Berjalan dengan berhati-hati dan elakkan berlari di kawasan basah."
+            },
+            {
+                word: "LEMBUT", category: "SENTUHAN", icon: "🦺",
+                sentence: "Jaket keselamatan yang lembut dan selesa penting dipasang rapat semasa menaiki bot.",
+                tip: "Sentiasa pakai jaket keselamatan di atas air."
+            }
+        ];
+
+        // Skim Warna Belon Sarkas
+        const balloonColors = [
+            { bg: "bg-red-500", border: "border-red-300", text: "text-white" },
+            { bg: "bg-amber-400", border: "border-amber-200", text: "text-red-950" },
+            { bg: "bg-blue-500", border: "border-blue-200", text: "text-white" },
+            { bg: "bg-emerald-500", border: "border-emerald-200", text: "text-white" },
+            { bg: "bg-purple-500", border: "border-purple-200", text: "text-white" },
+            { bg: "bg-rose-500", border: "border-rose-200", text: "text-white" }
+        ];
+
+        // --- 2. PEMBOLEHUBAH NEGERI PERMAINAN (GAME STATE) ---
+        let gameState = {
+            score: 0,
+            combo: 0,
+            maxCombo: 0,
+            correctCount: 0,
+            lives: 3,
+            speedMode: "NORMAL", // NORMAL, LAJU, SUPER LAJU
+            speedMultiplier: 1.0,
+            activeWordList: [],
+            currentBalloonItem: null,
+            activeDraggable: null,
+            currentFallTween: null,
+            isPaused: false
+        };
+
+        // --- 3. PEMBINA AUDIO BINAAN (WEB AUDIO API) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'correct') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+                gain.gain.setValueAtTimeBerikut ialah kod lengkap permainan **🎪 SARKAS KATA ADJEKTIF PANCAINDERA: MISI KESELAMATAN 🦺**. 
+
+Kod ini terbina secara lengkap dalam **SATU FAIL HTML** menggunakan Tailwind CSS, GSAP (GreenSock), dan Google Fonts (`Fredoka`). Ia menyokong kedua-dua tetikus (*desktop*) serta sentuhan jari (*touch screen* / tablet).
+
+Sila simpan kod di bawah sebagai fail `.html` (contohnya: `sarkas_pancaindera.html`) dan buka terus dalam pelayar web anda.
+
+```html
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sarkas Kata Adjektif Pancaindera: Misi Keselamatan</title>
+    
+    <!-- Google Fonts: Fredoka -->
+    <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)">
+    <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin>
+    <link href="[https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap](https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap)" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        fredoka: ['Fredoka', 'sans-serif'],
+                    },
+                    colors: {
+                        circusRed: '#FF2E93',
+                        circusYellow: '#FFD166',
+                        circusBlue: '#06D6A0',
+                        circusDark: '#118AB2',
+                        circusPurple: '#8338EC',
+                        safetyOrange: '#FF6B6B'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- GSAP CDN untuk Animasi Interaktif -->
+    <script src="[https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js](https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js)"></script>
+
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        /* Corak Latar Belakang Laman Sarkas */
+        .circus-bg {
+            background: radial-gradient(circle, #2a085c 0%, #0f0326 100%);
+            position: relative;
+        }
+
+        .circus-tent-stripe {
+            background: repeating-linear-gradient(
+                45deg,
+                rgba(255, 46, 147, 0.15),
+                rgba(255, 46, 147, 0.15) 30px,
+                rgba(255, 209, 102, 0.15) 30px,
+                rgba(255, 209, 102, 0.15) 60px
+            );
+        }
+
+        /* Belon Drag Elements */
+        .balloon {
+            position: absolute;
+            cursor: grab;
+            touch-action: none;
+            z-index: 30;
+            will-change: transform, top, left;
+        }
+        
+        .balloon:active {
+            cursor: grabbing;
+        }
+
+        .balloon-body {
+            position: relative;
+            width: 110px;
+            height: 130px;
+            border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset -10px -10px 20px rgba(0,0,0,0.25), 0 10px 15px rgba(0,0,0,0.3);
+        }
+
+        .balloon-body::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 10px solid currentColor;
+        }
+
+        .balloon-string {
+            position: absolute;
+            bottom: -35px;
+            left: 50%;
+            width: 2px;
+            height: 30px;
+            background: rgba(255,255,255,0.6);
+            transform: translateX(-50%);
+        }
+
+        /* Kad Bakul Drop Targets */
+        .basket {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .basket.drag-over {
+            transform: scale(1.08) translateY(-10px);
+            box-shadow: 0 0 25px rgba(255, 209, 102, 0.8);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #FFD166;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen circus-bg text-white flex flex-col justify-between">
+
+    <!-- Latar Belakang Garisan Sarkas -->
+    <div class="absolute inset-0 circus-tent-stripe pointer-events-none opacity-40"></div>
+
+    <!-- 1. BAR MAKLUMAT BAHAGIAN ATAS (HUD) -->
+    <header id="hud-bar" class="relative z-20 w-full bg-slate-900/80 backdrop-blur-md border-b-4 border-yellow-400 px-4 py-2 flex flex-wrap justify-between items-center shadow-lg">
+        <div class="flex items-center space-x-2">
+            <span class="text-2xl">🎪</span>
+            <h1 class="text-xl md:text-2xl font-bold tracking-wide text-yellow-300">MISI KESELAMATAN</h1>
+        </div>
+
+        <div class="flex items-center space-x-4 md:space-x-8 text-sm md:text-base font-bold">
+            <!-- Skor -->
+            <div class="bg-purple-900/80 border-2 border-purple-400 px-3 py-1 rounded-full flex items-center space-x-1">
+                <span>⭐ SKOR:</span>
+                <span id="score-text" class="text-yellow-300 text-lg md:text-xl">0</span>
+            </div>
+
+            <!-- Kombo -->
+            <div class="bg-red-900/80 border-2 border-red-400 px-3 py-1 rounded-full flex items-center space-x-1">
+                <span>🔥 KOMBO:</span>
+                <span id="combo-text" class="text-orange-400 text-lg md:text-xl">0</span>
+            </div>
+
+            <!-- Kelajuan -->
+            <div class="bg-blue-900/80 border-2 border-blue-400 px-3 py-1 rounded-full flex items-center space-x-1">
+                <span>⚡ KELAJUAN:</span>
+                <span id="speed-text" class="text-cyan-300">NORMAL</span>
+            </div>
+
+            <!-- Nyawa -->
+            <div class="flex items-center space-x-1 bg-slate-800/80 border-2 border-slate-600 px-3 py-1 rounded-full">
+                <span id="lives-container" class="text-xl tracking-widest">❤️❤️❤️</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. RUANG PERMAINAN UTAMA (BAHAGIAN TENGAH) -->
+    <main id="game-arena" class="relative flex-1 w-full overflow-hidden flex flex-col justify-between">
+        
+        <!-- Arahan Ringkas Atas Arena -->
+        <div class="absolute top-3 left-1/2 -translate-x-1/2 z-10 bg-slate-900/60 backdrop-blur border border-yellow-400/40 px-4 py-1.5 rounded-full text-center text-xs md:text-sm font-semibold text-yellow-200 pointer-events-none shadow-md">
+            🎈 Tarik belon ke bakul pancaindera yang betul sebelum menyentuh lantai!
+        </div>
+
+        <!-- Kawasan Belon Jatuh -->
+        <div id="balloon-container" class="relative w-full flex-1 overflow-hidden pointer-events-auto">
+            <!-- Belon akan dijana di sini oleh JavaScript -->
+        </div>
+
+        <!-- 3. BAKUL KATEGORI PANCAINDERA (BAHAGIAN BAWAH) -->
+        <footer id="baskets-container" class="relative z-20 w-full px-2 pb-3 pt-2 grid grid-cols-5 gap-2 md:gap-4 bg-gradient-to-t from-slate-950 via-slate-900/90 to-transparent">
+            
+            <!-- Bakul 1: Penglihatan -->
+            <div data-category="PENGLIHATAN" class="basket group relative bg-blue-600/80 border-4 border-blue-400 rounded-2xl p-2 md:p-3 flex flex-col items-center justify-center text-center shadow-lg cursor-pointer">
+                <div class="text-3xl md:text-4xl mb-1 group-hover:scale-110 transition-transform">👁️</div>
+                <div class="font-bold text-xs md:text-base text-blue-100 uppercase tracking-wider">Penglihatan</div>
+            </div>
+
+            <!-- Bakul 2: Pendengaran -->
+            <div data-category="PENDENGARAN" class="basket group relative bg-purple-600/80 border-4 border-purple-400 rounded-2xl p-2 md:p-3 flex flex-col items-center justify-center text-center shadow-lg cursor-pointer">
+                <div class="text-3xl md:text-4xl mb-1 group-hover:scale-110 transition-transform">👂</div>
+                <div class="font-bold text-xs md:text-base text-purple-100 uppercase tracking-wider">Pendengaran</div>
+            </div>
+
+            <!-- Bakul 3: Bau -->
+            <div data-category="BAU" class="basket group relative bg-emerald-600/80 border-4 border-emerald-400 rounded-2xl p-2 md:p-3 flex flex-col items-center justify-center text-center shadow-lg cursor-pointer">
+                <div class="text-3xl md:text-4xl mb-1 group-hover:scale-110 transition-transform">👃</div>
+                <div class="font-bold text-xs md:text-base text-emerald-100 uppercase tracking-wider">Bau</div>
+            </div>
+
+            <!-- Bakul 4: Rasa -->
+            <div data-category="RASA" class="basket group relative bg-amber-600/80 border-4 border-amber-400 rounded-2xl p-2 md:p-3 flex flex-col items-center justify-center text-center shadow-lg cursor-pointer">
+                <div class="text-3xl md:text-4xl mb-1 group-hover:scale-110 transition-transform">👅</div>
+                <div class="font-bold text-xs md:text-base text-amber-100 uppercase tracking-wider">Rasa</div>
+            </div>
+
+            <!-- Bakul 5: Sentuhan -->
+            <div data-category="SENTUHAN" class="basket group relative bg-rose-600/80 border-4 border-rose-400 rounded-2xl p-2 md:p-3 flex flex-col items-center justify-center text-center shadow-lg cursor-pointer">
+                <div class="text-3xl md:text-4xl mb-1 group-hover:scale-110 transition-transform">✋</div>
+                <div class="font-bold text-xs md:text-base text-rose-100 uppercase tracking-wider">Sentuhan</div>
+            </div>
+
+        </footer>
+    </main>
+
+    <!-- 4. MODAL & OVERLAY SKRIN -->
+
+    <!-- Modal 1: Menu Utama -->
+    <div id="start-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4">
+        <div class="relative w-full max-w-xl bg-gradient-to-b from-purple-900 to-slate-900 border-4 border-yellow-400 rounded-3xl p-6 md:p-8 text-center shadow-2xl overflow-hidden">
+            <!-- Hiasan Sarkas -->
+            <div class="text-5xl md:text-6xl mb-3 animate-bounce">🎪</div>
+            <h1 class="text-3xl md:text-4xl font-extrabold text-yellow-300 tracking-wide mb-2">SARKAS KATA ADJEKTIF PANCAINDERA</h1>
+            <p class="text-lg md:text-xl font-bold text-pink-400 mb-4">🦺 Misi Keselamatan Bermula!</p>
+            
+            <p class="text-slate-200 text-sm md:text-base mb-6 leading-relaxed bg-slate-800/80 p-4 rounded-xl border border-slate-700">
+                Tarik setiap belon kata adjektif ke bakul pancaindera yang betul. Kenal pasti perkataan sambil mempelajari panduan keselamatan penting!
+            </p>
+
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <button id="btn-start" class="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 text-slate-950 font-extrabold text-lg md:text-xl px-8 py-3.5 rounded-full shadow-lg border-2 border-white transform hover:scale-105 active:scale-95 transition-all">
+                    ▶️ MULA PERMAINAN
+                </button>
+                <button id="btn-howto" class="bg-slate-700 hover:bg-slate-600 text-white font-bold text-lg px-6 py-3.5 rounded-full border-2 border-slate-500 transform hover:scale-105 active:scale-95 transition-all">
+                    📖 CARA BERMAIN
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 2: Cara Bermain -->
+    <div id="howto-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4">
+        <div class="relative w-full max-w-lg bg-slate-900 border-4 border-cyan-400 rounded-3xl p-6 text-left shadow-2xl">
+            <h2 class="text-2xl font-bold text-cyan-300 mb-4 text-center">📖 Cara Bermain</h2>
+            <ul class="space-y-3 text-sm md:text-base text-slate-200 mb-6">
+                <li class="flex items-start gap-2">
+                    <span>🎈</span>
+                    <span><strong>Tarik Belon:</strong> Tekan dan tarik belon kata adjektif yang jatuh dari atas.</span>
+                </li>
+                <li class="flex items-start gap-
